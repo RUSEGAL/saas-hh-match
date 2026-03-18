@@ -1,0 +1,229 @@
+ТЗ: Telegram Bot — Resume & Vacancy Assistant
+1. Overview
+Telegram бот как UI для API. Подписочная модель — бот активен только при оплате.
+2. Tech Stack
+Component
+Language
+Bot Framework
+Scheduler
+HTTP Client
+3. Bot Commands
+Command
+/start
+/menu
+/resumes
+/vacancies
+/schedule
+/stats
+/payment
+/help
+4. Main Menu Structure
+📋 Меню
+├── 📄 Мои резюме
+│   ├── 📝 Создать резюме
+│   ├── 📋 Список резюме
+│   └── ✏️ Редактировать
+├── 🔍 Поиск вакансий
+│   ├── 🚀 Начать поиск
+│   ├── 📅 Расписание
+│   └── 📊 История поиска
+├── 💳 Оплата
+│   ├── Текущий статус
+│   └── Оплатить
+├── 📈 Статистика
+│   └── Просмотр статистики
+└── ⚙️ Настройки
+    └── Уведомления вкл/выкл
+5. Subscription Model
+5.1 Check Subscription
+func isSubscribed(userID int64) bool {
+    // GET /api/payments/me
+    // Check if any payment has status = "active" and created_at within 30 days
+}
+5.2 Bot States
+State
+no_subscription
+active
+expired
+6. Resume Management
+6.1 Create Resume Flow
+1. User: /resumes → 📝 Создать резюме
+2. Bot: "Введите название резюме"
+3. User: "Backend Developer"
+4. Bot: "Введите текст резюме"
+5. User: "5 years Go experience..."
+6. Bot: Отправляет POST /api/resumes
+7. Bot: "✅ Резюме создано! Отправлено на анализ AI."
+6.2 Resume States
+📄 Мои резюме:
+1. Backend Developer (AI анализ: ✅, Score: 0.85)
+2. DevOps Engineer (⏳ Анализ...)
+3. Fullstack Developer (AI анализ: ✅, Score: 0.72)
+✏️ Редактировать | 🗑️ Удалить
+7. Vacancy Search
+7.1 Manual Search Flow
+1. User: /vacancies → 🚀 Начать поиск
+2. Bot: "Выберите резюме для сравнения"
+3. User: Выбирает из списка
+4. Bot: "Введите поисковый запрос"
+5. User: "Golang developer"
+6. Bot: "Дополнительные фильтры?"
+   - Тип занятости: Трудоустройство / Самозанятость / ИП
+   - Формат: Удалёнка / Офис / Гибрид
+   - Исключить слова (опционально)
+7. Bot: Отправляет POST /api/vacancies/match
+8. Bot: "🔍 Ищу вакансии..." + инлайн-кнопка отмены
+9. Webhook результат → отправляет пользователю
+7.2 Search Results Format
+🎯 Найдено 5 подходящих вакансий:
+1️⃣ Senior Go Developer — Яндекс
+   📊 Совпадение: 92%
+   💰 от 200 000 ₽
+   📍 Удалёнка
+   🔗 https://hh.ru/vacancy/123
+2️⃣ Backend Developer — Тинькофф
+   📊 Совпадение: 87%
+   💰 от 180 000 ₽
+   📍 Гибрид
+   🔗 https://hh.ru/vacancy/456
+[Откликнуться] [Сохранить]
+8. Scheduled Search
+8.1 Setup Flow
+1. User: /schedule
+2. Bot: "Настройка расписания поиска"
+3. Bot: Показывает текущее расписание или "Не настроено"
+4. Bot: "Выберите действие:"
+   - 🕐 Установить время
+   - 📅 Выбрать дни
+   - 🔍 Поисковый запрос
+   - ❌ Отключить
+8.2 Cron Format
+User Selection
+Каждый день в 10:00
+Пн-ср-пт в 09:00
+Каждую неделю в понедельник
+8.3 Storage
+Хранить в DB или Redis:
+type UserSchedule struct {
+    UserID      int64  `json:"user_id"`
+    CronExpr    string `json:"cron_expr"`
+    ResumeID    int64  `json:"resume_id"`
+    Query       string `json:"query"`
+    Filters     Filters `json:"filters"`
+    IsActive    bool   `json:"is_active"`
+}
+8.4 Execution
+cron.EveryMinute().Do(func() {
+    jobs := scheduler.GetDueJobs()
+    for _, job := range jobs {
+        go processScheduledSearch(job)
+    }
+})
+func processScheduledSearch(job UserSchedule) {
+    // POST /api/vacancies/match
+    // Send results to user via Telegram
+}
+9. Payment
+9.1 Status Check
+💳 Подписка:
+Статус: ✅ Активна
+Истекает: 15.04.2026
+Дней осталось: 28
+[Продлить подписку]
+9.2 Payment Flow
+1. User: /payment → Оплатить
+2. Bot: Выбор тарифа:
+   - 1 месяц — 299₽
+   - 3 месяца — 799₽ (скидка 10%)
+   - 12 месяцев — 2499₽ (скидка 30%)
+3. User: Выбирает тариф
+4. Bot: Генерирует ссылку на оплату (ЮKassa / CloudPayments)
+5. User: Оплачивает
+6. Webhook от платёжной системы → обновляет статус в DB
+7. Bot: Уведомляет пользователя "✅ Подписка активирована!"
+10. Statistics
+10.1 User Stats
+📈 Ваша статистика:
+Резюме: 3
+Проведено поисков: 12
+Найдено вакансий: 47
+Просмотрено: 23
+Откликов: 5
+📊 За этот месяц:
+├── Резюме: 1 (+1)
+├── Поисков: 4
+└── Вакансий: 18
+11. Bot Architecture
+telegram-bot/
+├── cmd/
+│   └── main.go
+├── internal/
+│   ├── bot/
+│   │   ├── bot.go           # Bot initialization
+│   │   ├── handlers/        # Message handlers
+│   │   ├── keyboards/       # Inline keyboards
+│   │   └── states/          # User states
+│   ├── api/
+│   │   └── client.go       # API client
+│   ├── scheduler/
+│   │   └── scheduler.go     # Cron jobs
+│   └── config/
+│       └── config.go
+├── go.mod
+└── .env
+12. API Client
+type APIClient struct {
+    BaseURL string
+    Token   string
+    Client  *http.Client
+}
+func (c *APIClient) GetUserPayments(userID int64) ([]Payment, error)
+func (c *APIClient) CreateResume(userID int64, title, content string) (*Resume, error)
+func (c *APIClient) GetResumes(userID int64) ([]Resume, error)
+func (c *APIClient) MatchVacancies(userID int64, req *MatchRequest) (*MatchJob, error)
+func (c *APIClient) GetMatchResults(matchID int64) (*MatchResult, error)
+13. Config
+BOT_TOKEN=telegram_bot_token
+API_URL=http://localhost:8080
+API_TOKEN=api_jwt_token
+# Payment
+PAYMENT_PROVIDER=yookassa
+YOOKASSA_SHOP_ID=shop_id
+YOOKASSA_SECRET=secret
+# Scheduler
+SCHEDULER_ENABLED=true
+TIMEZONE=Europe/Moscow
+# Subscription
+SUBSCRIPTION_DAYS=30
+SUBSCRIPTION_PRICE_MONTH=299
+14. Database (Bot-specific)
+CREATE TABLE bot_users (
+    id INTEGER PRIMARY KEY,
+    telegram_id INTEGER UNIQUE,
+    username TEXT,
+    created_at DATETIME,
+    is_active BOOLEAN DEFAULT true
+);
+CREATE TABLE user_schedules (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER,
+    cron_expr TEXT,
+    resume_id INTEGER,
+    query TEXT,
+    filters TEXT, -- JSON
+    is_active BOOLEAN DEFAULT true,
+    last_run DATETIME,
+    FOREIGN KEY(user_id) REFERENCES bot_users(telegram_id)
+);
+15. Error Handling
+Scenario
+API unreachable
+No subscription
+Resume not found
+Payment failed
+Scheduled search failed
+16. Notifications
+Event
+Subscription expiring (3 days)
+Resume analyzed
+Scheduled search results

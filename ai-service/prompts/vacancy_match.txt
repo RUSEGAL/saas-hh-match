@@ -1,0 +1,20 @@
+Compare this resume with each vacancy listed below. Return match scores for ALL vacancies.
+
+Resume:
+{resume}
+
+Vacancies:
+{vacancies}
+
+Return a JSON array with match results for EACH vacancy (in the same order):
+[
+  {"index": 0, "score": 0.0-1.0, "reasoning": "brief explanation"},
+  {"index": 1, "score": 0.0-1.0, "reasoning": "brief explanation"},
+  ...
+]
+
+Important:
+- Return results for ALL vacancies in the list
+- index must match the vacancy position (0-based)
+- Be concise but accurate in reasoning
+- Consider: skills match, experience level, job responsibilities fit

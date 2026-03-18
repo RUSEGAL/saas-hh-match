@@ -1,0 +1,334 @@
+basePath: /
+definitions:
+  types_external.GenerateTokenRequest:
+    properties:
+      password:
+        type: string
+      user:
+        type: string
+    type: object
+  types_external.PaymentRequest:
+    properties:
+      amount:
+        format: int64
+        type: integer
+      id:
+        format: int64
+        type: integer
+      provider:
+        type: string
+      status:
+        type: string
+      telegrammID:
+        format: int64
+        type: integer
+      userID:
+        format: int64
+        type: integer
+    type: object
+  types_external.ResumeRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+    type: object
+  types_internal.Payment:
+    properties:
+      amount:
+        format: int64
+        type: integer
+      createdAt:
+        type: string
+      id:
+        format: int64
+        type: integer
+      provider:
+        type: string
+      status:
+        type: string
+      userID:
+        format: int64
+        type: integer
+    type: object
+  types_internal.Resume:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for user management, payments and resumes
+  title: Go API
+  version: "1.0"
+paths:
+  /api/admin/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get stats for all users or specific user by ID
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user statistics
+      tags:
+      - Admin
+  /api/admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all users (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - Admin
+  /api/admin/users/{id}/payments:
+    get:
+      consumes:
+      - application/json
+      description: Get all payments for a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user payments
+      tags:
+      - Admin
+  /api/admin/users/{id}/resumes:
+    get:
+      consumes:
+      - application/json
+      description: Get all resumes for a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user resumes
+      tags:
+      - Admin
+  /api/payments:
+    post:
+      consumes:
+      - application/json
+      description: Create a new payment for the authenticated user
+      parameters:
+      - description: Payment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types_external.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new payment
+      tags:
+      - Payments
+  /api/payments/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing payment by ID
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types_external.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a payment
+      tags:
+      - Payments
+  /api/payments/me:
+    get:
+      consumes:
+      - application/json
+      description: Get all payments for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/types_internal.Payment'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get my payments
+      tags:
+      - Payments
+  /api/resumes:
+    post:
+      consumes:
+      - application/json
+      description: Create a new resume for the authenticated user
+      parameters:
+      - description: Resume data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types_external.ResumeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new resume
+      tags:
+      - Resumes
+  /api/resumes/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing resume by ID
+      parameters:
+      - description: Resume ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Resume data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types_external.ResumeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a resume
+      tags:
+      - Resumes
+  /api/resumes/me:
+    get:
+      consumes:
+      - application/json
+      description: Get all resumes for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/types_internal.Resume'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get my resumes
+      tags:
+      - Resumes
+  /auth/getToken:
+    post:
+      consumes:
+      - application/json
+      description: Get a token for authentication (auto-creates user if not exists)
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types_external.GenerateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Generate authentication token
+      tags:
+      - Auth
+swagger: "2.0"

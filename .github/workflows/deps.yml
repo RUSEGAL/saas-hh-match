@@ -1,0 +1,91 @@
+name: Dependency Update
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 6 AM
+  workflow_dispatch:
+
+jobs:
+  update-go-api:
+    name: Update go-api dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Update dependencies
+        working-directory: go-api
+        run: |
+          go get -u ./...
+          go mod tidy
+          go mod download
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: .
+          commit-message: 'chore(deps): update go-api dependencies'
+          title: 'chore(deps): update go-api dependencies'
+          branch: dependabot/go-api
+          delete-branch: true
+          labels: dependencies
+
+  update-ai-service:
+    name: Update ai-service dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Update dependencies
+        working-directory: ai-service
+        run: |
+          go get -u ./...
+          go mod tidy
+          go mod download
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: .
+          commit-message: 'chore(deps): update ai-service dependencies'
+          title: 'chore(deps): update ai-service dependencies'
+          branch: dependabot/ai-service
+          delete-branch: true
+          labels: dependencies
+
+  update-tg-bot:
+    name: Update tg-bot dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Update dependencies
+        working-directory: tg-bot
+        run: |
+          go get -u ./...
+          go mod tidy
+          go mod download
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: .
+          commit-message: 'chore(deps): update tg-bot dependencies'
+          title: 'chore(deps): update tg-bot dependencies'
+          branch: dependabot/tg-bot
+          delete-branch: true
+          labels: dependencies

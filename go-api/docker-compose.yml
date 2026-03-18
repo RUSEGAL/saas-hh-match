@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=goapi
+      - DB_MAX_OPEN_CONNS=20
+      - DB_MAX_IDLE_CONNS=10
+      - REDIS_ADDR=redis:6379
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - redis
+      - nats
+      - pgbouncer
+    networks:
+      - app-network
+    deploy:
+      replicas: 3
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/goapi
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=25
+      - MIN_POOL_SIZE=5
+      - SERVER_IDLE_TIMEOUT=600
+      - SERVER_LIFETIME=3600
+    ports:
+      - "5432:5432"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goapi
+      - POSTGRES_MAX_CONNECTIONS=200
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      - max_connections=200
+      - shared_buffers=256MB
+      - effective_cache_size=1GB
+      - maintenance_work_mem=64MB
+      - checkpoint_completion_target=0.9
+      - wal_buffers=16MB
+      - default_statistics_target=100
+      - random_page_cost=1.1
+      - effective_io_concurrency=200
+      - work_mem=4MB
+      - min_wal_size=1GB
+      - max_wal_size=4GB
+    networks:
+      - app-network
+
+  postgres-replica:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goapi
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      - hot_standby=on
+      - max_connections=200
+      - hot_standby_feedback=on
+    profiles:
+      - scaling
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    networks:
+      - app-network
+
+  redis-cluster:
+    image: redis:7-alpine
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    profiles:
+      - scaling
+    networks:
+      - app-network
+
+  nats:
+    image: nats:2.10-alpine
+    ports:
+      - "4222:4222"
+    command: >
+      nats-server
+      -c /etc/nats/nats-server.conf
+    volumes:
+      - ./nats-server.conf:/etc/nats/nats-server.conf
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

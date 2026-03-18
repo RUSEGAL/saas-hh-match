@@ -1,0 +1,22 @@
+Analyze this resume and optimize it for ATS systems and recruiters.
+Focus on: clarity, keywords, impact verbs, and quantifiable achievements potential.
+
+Title: {title}
+
+Content:
+{content}
+
+Return a JSON object with:
+{
+  "optimized_title": "Improved title with better keywords and clarity",
+  "optimized_content": "Enhanced description highlighting key skills and impact",
+  "tags": ["skill1", "skill2", "technology1", "methodology1"],
+  "score": 0.0-1.0
+}
+
+Guidelines:
+- Extract technical skills, tools, and technologies as tags
+- Include soft skills where relevant
+- Score based on: keyword density, clarity, specificity, and industry relevance
+- Be concise but comprehensive
+- Use the full content for accurate analysis

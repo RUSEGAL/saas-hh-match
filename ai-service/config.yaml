@@ -1,0 +1,13 @@
+nats_url: "nats://localhost:4222"
+api_webhook_url: "http://localhost:8080/ai/webhook/analyze"
+api_webhook_matches_url: "http://localhost:8080/ai/webhook/matches"
+ai_api_key: ""
+ai_model: "deepseek-chat"
+ai_base_url: "https://api.deepseek.com"
+cache_size: 1000
+resume_workers: 0
+vacancy_workers: 2
+main_api_url: "http://localhost:8080"
+hh_api_url: "https://api.hh.ru"
+match_score_threshold: 0.70
+match_batch_size: 20

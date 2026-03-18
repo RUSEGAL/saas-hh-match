@@ -1,0 +1,89 @@
+name: Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Migration action'
+        required: true
+        default: 'up'
+        type: choice
+        options:
+          - up
+          - down
+          - status
+      steps:
+        description: 'Number of steps to migrate'
+        required: false
+        default: '1'
+
+jobs:
+  migrate:
+    name: Run migration ${{ github.event.inputs.action }}
+    runs-on: ubuntu-latest
+    container:
+      image: postgres:16-alpine
+      env:
+        POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start PostgreSQL
+        run: |
+          docker run -d --name postgres \
+            -e POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            -e POSTGRES_DB=${{ env.DB_NAME }} \
+            -v $(pwd)/go-api/internal/config/db/init.sql:/docker-entrypoint-initdb.d/init.sql \
+            postgres:16-alpine
+
+      - name: Wait for PostgreSQL
+        run: sleep 5
+
+      - name: Run migration
+        if: github.event.inputs.action == 'up'
+        run: |
+          docker exec postgres psql \
+            -U postgres \
+            -d goapi \
+            -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;" || echo "No migrations yet"
+
+      - name: Status
+        if: github.event.inputs.action == 'status'
+        run: |
+          docker exec postgres psql \
+            -U postgres \
+            -d goapi \
+            -c "SELECT * FROM schema_migrations;"
+
+      - name: Rollback
+        if: github.event.inputs.action == 'down'
+        run: |
+          echo "Rolling back ${{ github.event.inputs.steps }} steps..."
+          # Add your rollback logic here
+
+      - name: Notify
+        uses: slackapi/slack-github-action@v1.25
+        with:
+          payload: |
+            {
+              "text": "Database migration: ${{ github.event.inputs.action }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Database Migration*\nAction: ${{ github.event.inputs.action }}\nActor: ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop postgres || true
+          docker rm postgres || true

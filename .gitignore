@@ -1,0 +1,54 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build
+tmp/
+dist/
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+artifacts/
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Test
+coverage.out
+*.cover
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp
+*.temp
+TODO.md
+
+# Dependencies
+vendor/
+
+# Local development
+*.local
+.docker/
+
+# SQLite
+*.db
+*.db-journal

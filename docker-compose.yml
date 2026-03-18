@@ -1,0 +1,220 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./go-api
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=goapi
+      - DB_MAX_OPEN_CONNS=20
+      - DB_MAX_IDLE_CONNS=10
+      - DB_CONN_MAX_LIFETIME_MIN=5
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      - postgres
+      - redis
+      - nats
+      - pgbouncer
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DATABASE_URL=postgres://postgres:${DB_PASSWORD:-postgres}@postgres:5432/goapi
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=25
+      - MIN_POOL_SIZE=5
+      - SERVER_IDLE_TIMEOUT=600
+      - SERVER_LIFETIME=3600
+    ports:
+      - "5432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=goapi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./go-api/internal/config/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: >
+      postgres
+      - max_connections=200
+      - shared_buffers=256MB
+      - effective_cache_size=1GB
+      - maintenance_work_mem=64MB
+      - checkpoint_completion_target=0.9
+      - wal_buffers=16MB
+      - default_statistics_target=100
+      - random_page_cost=1.1
+      - effective_io_concurrency=200
+      - work_mem=4MB
+      - min_wal_size=1GB
+      - max_wal_size=4GB
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-replica:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=goapi
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      - hot_standby=on
+      - max_connections=200
+      - hot_standby_feedback=on
+    profiles:
+      - scaling
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    volumes:
+      - nats_data:/data
+      - ./go-api/nats-server.conf:/etc/nats/nats-server.conf:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    environment:
+      - NATS_URL=nats://nats:4222
+      - API_WEBHOOK_URL=http://api:8080/ai/webhook/analyze
+      - API_WEBHOOK_MATCHES_URL=http://api:8080/ai/webhook/matches
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL:-deepseek-chat}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.deepseek.com}
+      - RESUME_WORKERS=${RESUME_WORKERS:-4}
+      - VACANCY_WORKERS=${VACANCY_WORKERS:-2}
+      - MAIN_API_URL=http://api:8080
+      - HH_API_URL=https://api.hh.ru
+      - MATCH_SCORE_THRESHOLD=0.70
+      - MATCH_BATCH_SIZE=20
+    depends_on:
+      nats:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  tg-bot:
+    build:
+      context: ./tg-bot
+      dockerfile: Dockerfile
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - API_URL=http://nginx:80
+      - API_TOKEN=${API_TOKEN}
+      - DATABASE_URL=postgres://postgres:${DB_PASSWORD:-postgres}@postgres:5432/bot?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SCHEDULER_ENABLED=true
+      - MODE=${BOT_MODE:-polling}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+      - WEBHOOK_LISTEN=:8443
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+    depends_on:
+      - postgres
+      - redis
+      - nginx
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      replicas: ${BOT_REPLICAS:-1}
+
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  redis_data:
+  nats_data:
+
+networks:
+  app-network:
+    driver: bridge

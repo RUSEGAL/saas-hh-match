@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  go-api:
+    name: go-api tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-api-${{ hashFiles('go-api/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-api-
+
+      - name: Run go vet
+        working-directory: go-api
+        run: go vet ./...
+
+      - name: Run tests
+        working-directory: go-api
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: go-api/coverage.out
+          flags: goapi
+
+      - name: Build
+        working-directory: go-api
+        run: go build -o /tmp/go-api ./cmd/api/main.go
+
+  ai-service:
+    name: ai-service tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-ai-service-${{ hashFiles('ai-service/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-ai-service-
+
+      - name: Run go vet
+        working-directory: ai-service
+        run: go vet ./...
+
+      - name: Run tests
+        working-directory: ai-service
+        run: go test -v -race ./...
+
+      - name: Build
+        working-directory: ai-service
+        run: go build -o /tmp/ai-service ./cmd/main.go
+
+  tg-bot:
+    name: tg-bot tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-tg-bot-${{ hashFiles('tg-bot/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-tg-bot-
+
+      - name: Run go vet
+        working-directory: tg-bot
+        run: go vet ./...
+
+      - name: Run tests
+        working-directory: tg-bot
+        run: go test -v -race ./...
+
+      - name: Build
+        working-directory: tg-bot
+        run: go build -o /tmp/tg-bot ./cmd/main.go
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build go-api
+        uses: docker/build-push-action@v6
+        with:
+          context: ./go-api
+          push: false
+          tags: app/go-api:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build ai-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-service
+          push: false
+          tags: app/ai-service:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build tg-bot
+        uses: docker/build-push-action@v6
+        with:
+          context: ./tg-bot
+          push: false
+          tags: app/tg-bot:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

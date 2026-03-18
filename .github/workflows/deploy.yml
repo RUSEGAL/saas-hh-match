@@ -1,0 +1,132 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+      image-tag:
+        description: 'Image tag to deploy'
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+  TAG: ${{ github.event.inputs.image-tag }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        if: github.event.inputs.environment == 'production'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images
+        run: |
+          docker compose pull
+        env:
+          IMAGE_TAG: ${{ env.TAG }}
+
+      - name: Deploy with Docker Compose
+        run: |
+          docker compose up -d
+        env:
+          IMAGE_TAG: ${{ env.TAG }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Health check
+        run: |
+          echo "Waiting for services..."
+          sleep 30
+          
+          # Check API
+          curl -f http://localhost/health || exit 1
+          
+          # Check Redis
+          docker compose exec -T redis redis-cli ping
+          
+          # Check PostgreSQL
+          docker compose exec -T postgres pg_isready -U postgres
+
+      - name: Notify deployment
+        if: always()
+        uses: slackapi/slack-github-action@v1.25
+        with:
+          payload: |
+            {
+              "text": "Deployment ${{ github.event.inputs.environment }}: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment ${{ github.event.inputs.environment }}*\nTag: ${{ env.TAG }}\nStatus: ${{ job.status }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production' && failure()
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get previous tag
+        id: prev-tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "v0.0.0")
+          echo "prev-tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Notify rollback
+        uses: slackapi/slack-github-action@v1.25
+        with:
+          payload: |
+            {
+              "text": "⚠️ Auto-rollback initiated for production!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*⚠️ Production Auto-rollback*\nPrevious tag: ${{ steps.prev-tag.outputs.prev-tag }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
