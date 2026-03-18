@@ -21,9 +21,12 @@ services:
       - ./go-api:/app
       - go-modules:/go/pkg/mod
     depends_on:
-      - postgres
-      - redis
-      - nats
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
     networks:
       - dev-network
 
@@ -59,8 +62,10 @@ services:
       - ./tg-bot:/app
       - bot-modules:/go/pkg/mod
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - dev-network
 
@@ -75,6 +80,11 @@ services:
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
       - ./go-api/internal/config/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 
     networks:
       - dev-network
 
@@ -89,11 +99,10 @@ services:
 
   nats:
     image: nats:2.10-alpine
+    command: ["-js"]
     ports:
       - "4222:4222"
       - "8222:8222"
-    volumes:
-      - nats_dev_data:/data
     networks:
       - dev-network
 
