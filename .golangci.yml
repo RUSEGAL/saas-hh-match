@@ -1,49 +1,83 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
+  tests: true
 
 linters:
+  disable-all: true
   enable:
-    - errcheck
-    - gosimple
+    # 🔴 MUST
     - govet
-    - ineffassign
+    - errcheck
     - staticcheck
+    - ineffassign
     - unused
-    - gosec
-    - gocyclo
-    - dupl
-    - goconst
-    - gofmt
-    - goimports
-    - misspell
+
+    # 🟡 QUALITY
     - revive
+    - gosimple
+    - goconst
+    - misspell
     - unconvert
     - unparam
+
+    # 🟠 DB / backend (ВАЖНО для Postgres)
+    - bodyclose
+    - rowserrcheck
+    - sqlclosecheck
+    - noctx
     - prealloc
+
+    # 🔵 STYLE
+    - gofmt
+    - goimports
+    - lll
+
+    # 🟣 COMPLEXITY
+    - gocyclo
 
 linters-settings:
   errcheck:
     check-type-assertions: true
     check-blank: true
+
+  revive:
+    severity: warning
+    rules:
+      - name: var-naming
+      - name: indent-error-flow
+      - name: early-return
+
   gocyclo:
-    min-complexity: 15
-  dupl:
-    threshold: 100
+    min-complexity: 12
+
   goconst:
-    min-len: 2
+    min-len: 3
     min-occurrences: 3
+
+  lll:
+    line-length: 120
+
   misspell:
     locale: US
+
   govet:
-    enable-all: true
-  lll:
-    line-length: 140
+    enable:
+      - shadow
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
 
-service:
-  golangci-lint-version: 1.60
+  exclude-rules:
+    # тесты не душим
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+
+    # db слой часто шумит по стилю
+    - path: internal/db/
+      linters:
+        - revive
