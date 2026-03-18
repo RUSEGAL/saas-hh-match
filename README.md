@@ -1,82 +1,115 @@
-# Production Deployment
+# Resume Bot
 
-## Quick Start
+Telegram бот для поиска работы с AI-анализом резюме.
 
-1. Copy environment file:
+## Микросервисная архитектура
+
+```
+┌─────────────┐    ┌─────────┐    ┌────────────┐
+│  tg-bot     │───▶│  go-api │───▶│ ai-service│
+│  (Telegram) │    │   API   │    │   (AI)    │
+└─────────────┘    └────┬────┘    └────────────┘
+                      │
+                ┌─────┴─────┐
+                │PostgreSQL │
+                │   Redis   │
+                │   NATS    │
+                └───────────┘
+```
+
+## Быстрый старт
+
+### Development
+
 ```bash
+# 1. Настройка переменных окружения
 cp .env.example .env
+# Заполните BOT_TOKEN, AI_API_KEY
+
+# 2. Запуск с hot reload
+make dev
+
+# Или вручную:
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
-2. Edit `.env` with your credentials:
-   - `BOT_TOKEN` - Telegram bot token
-   - `AI_API_KEY` - DeepSeek API key
-   - `DB_PASSWORD` - Database password
-   - `JWT_SECRET` - Random string for JWT
-
-3. Start services:
-```bash
-docker-compose up -d
-```
-
-4. Check status:
-```bash
-docker-compose ps
-docker-compose logs -f api
-```
-
-## Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| nginx | 80 | Load balancer & reverse proxy |
-| api | 8080 | Go API (3 replicas) |
-| tg-bot | - | Telegram bot |
-| ai-service | - | AI analysis service |
-| postgres | 5432 | Database |
-| redis | 6379 | Cache |
-| nats | 4222 | Message queue |
-
-## Scaling
+### Production
 
 ```bash
-# Scale API
-docker-compose up -d --scale api=10
+# 1. Настройка
+cp .env.example .env
+# Заполните все переменные
 
-# Scale bot (for high load)
-docker-compose up -d --scale tg-bot=3
+# 2. Production запуск
+make up
 
-# Scale AI workers
-RESUME_WORKERS=8 VACANCY_WORKERS=4 docker-compose up -d --build ai-service
+# Проверить статус
+make ps
+make logs
 ```
 
-## Monitoring
+## Сервисы
+
+| Сервис | Описание | Порт |
+|--------|----------|------|
+| tg-bot | Telegram бот | - |
+| go-api | REST API | 8080 |
+| ai-service | AI анализ резюме | - |
+| nginx | Load balancer | 80 |
+| postgres | База данных | 5432 |
+| redis | Кэш | 6379 |
+| nats | Message queue | 4222 |
+
+## Команды Makefile
 
 ```bash
-# API health
-curl http://localhost/health
-
-# NATS monitoring
-curl http://localhost:8222/healthz
-
-# Redis
-redis-cli -h localhost ping
+make dev          # Development с hot reload
+make dev-down     # Остановить dev
+make up           # Production запуск
+make down         # Остановить production
+make logs         # Логи всех сервисов
+make logs-api     # Логи API
+make test         # Тесты
+make lint         # Линтер
+make build        # Собрать образы
 ```
 
-## Stopping
+## CI/CD
 
-```bash
-docker-compose down
+| Workflow | Описание |
+|----------|----------|
+| CI | Тесты, lint, Docker build |
+| Build | Сборка и пуш образов |
+| Deploy | Деплой на сервер |
+| Security | Проверка уязвимостей |
+| Backup | Ежедневный бэкап БД |
 
-# With volumes (clean start)
-docker-compose down -v
+## Переменные окружения
+
+```env
+# Обязательные
+BOT_TOKEN=           # Telegram bot token
+AI_API_KEY=          # DeepSeek API key
+DB_PASSWORD=         # PostgreSQL password
+JWT_SECRET=          # JWT signing secret
+
+# Опциональные
+RESUME_WORKERS=4     # AI workers
+VACANCY_WORKERS=2    # Vacancy workers
 ```
 
-## Production Checklist
+## Структура проекта
 
-- [ ] Change all passwords in `.env`
-- [ ] Set `JWT_SECRET` to random 64-char string
-- [ ] Configure SSL certificates in `nginx/ssl/`
-- [ ] Set proper `WEBHOOK_URL` for bot
-- [ ] Set resource limits for production server
-- [ ] Setup monitoring (Prometheus, Grafana)
-- [ ] Setup backups for PostgreSQL
+```
+.
+├── go-api/         # REST API (Go + Gin)
+├── ai-service/     # AI анализ (Go)
+├── tg-bot/         # Telegram бот (Go)
+├── nginx/          # Load balancer
+├── docker-compose.yml     # Production
+└── docker-compose.dev.yml # Development
+```
+
+## Лицензия
+
+MIT

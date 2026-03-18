@@ -216,7 +216,7 @@ func formatSalary(s *Salary) string {
 	}
 
 	if from != "" && to != "" {
-		return fmt.Sprintf("%s %s %s", from, "-", to, s.Currency)
+		return fmt.Sprintf("%s %s %s", from, to, s.Currency)
 	}
 	if from != "" {
 		return fmt.Sprintf("%s %s", from, s.Currency)
