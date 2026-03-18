@@ -73,28 +73,40 @@ services:
       - app-network
     restart: unless-stopped
 
-  postgres:
+   postgres:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=goapi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: goapi
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./go-api/internal/config/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    command: >
-      postgres
+    command:
+      - postgres
+      - -c
       - max_connections=200
+      - -c
       - shared_buffers=256MB
+      - -c
       - effective_cache_size=1GB
+      - -c
       - maintenance_work_mem=64MB
+      - -c
       - checkpoint_completion_target=0.9
+      - -c
       - wal_buffers=16MB
+      - -c
       - default_statistics_target=100
+      - -c
       - random_page_cost=1.1
+      - -c
       - effective_io_concurrency=200
+      - -c
       - work_mem=4MB
+      - -c
       - min_wal_size=1GB
+      - -c
       - max_wal_size=4GB
     networks:
       - app-network
@@ -105,18 +117,21 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-replica:
+    postgres-replica:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=goapi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: goapi
     volumes:
       - postgres_replica_data:/var/lib/postgresql/data
-    command: >
-      postgres
+    command:
+      - postgres
+      - -c
       - hot_standby=on
+      - -c
       - max_connections=200
+      - -c
       - hot_standby_feedback=on
     profiles:
       - scaling
