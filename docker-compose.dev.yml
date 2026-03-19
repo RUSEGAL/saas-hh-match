@@ -36,36 +36,17 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       - NATS_URL=nats://nats:4222
-      - API_WEBHOOK_URL=http://host.docker.internal:8080/ai/webhook/analyze
-      - API_WEBHOOK_MATCHES_URL=http://host.docker.internal:8080/ai/webhook/matches
+      - API_WEBHOOK_URL=http://api:8080/ai/webhook/analyze
+      - API_WEBHOOK_MATCHES_URL=http://api:8080/ai/webhook/matches
       - AI_API_KEY=${AI_API_KEY}
-      - MAIN_API_URL=http://host.docker.internal:8080
+      - MAIN_API_URL=http://api:8080
       - HH_API_URL=https://api.hh.ru
     volumes:
       - ./ai-service:/app
       - ai-modules:/go/pkg/mod
     depends_on:
-      - nats
-    networks:
-      - dev-network
-
-  tg-bot:
-    build:
-      context: ./tg-bot
-      dockerfile: Dockerfile.dev
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - API_URL=http://host.docker.internal:8080
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/bot?sslmode=disable
-      - REDIS_ADDR=redis:6379
-    volumes:
-      - ./tg-bot:/app
-      - bot-modules:/go/pkg/mod
-    depends_on:
-      postgres:
+      nats:
         condition: service_healthy
-      redis:
-        condition: service_started
     networks:
       - dev-network
 
@@ -103,6 +84,31 @@ services:
     ports:
       - "4222:4222"
       - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - dev-network
+
+  tg-bot:
+    build:
+      context: ./tg-bot
+      dockerfile: Dockerfile.dev
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - API_URL=http://api:8080
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/bot?sslmode=disable
+      - REDIS_ADDR=redis:6379
+    volumes:
+      - ./tg-bot:/app
+      - bot-modules:/go/pkg/mod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - dev-network
 

@@ -11,4 +11,6 @@ COPY . .
 
 RUN go install github.com/air-verse/air@latest
 
+ENV HH_API_URL=https://api.hh.ru
+
 CMD ["air"]

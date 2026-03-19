@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git
 
@@ -21,7 +21,7 @@ COPY --from=builder /app/tg-bot .
 ENV BOT_TOKEN=
 ENV API_URL=http://api:8080
 ENV API_TOKEN=
-ENV DATABASE_URL=postgres://postgres:postgres@postgres:5432/bot?sslmode=disable
+ENV DATABASE_URL=postgres://postgres:postgres@pgbouncer:5432/bot?sslmode=disable
 ENV REDIS_ADDR=redis:6379
 ENV SCHEDULER_ENABLED=true
 ENV MODE=polling

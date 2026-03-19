@@ -73,7 +73,7 @@
 #       - app-network
 #     restart: unless-stopped
 
-#    postgres:
+#     postgres:
 #     image: postgres:16-alpine
 #     environment:
 #       POSTGRES_USER: postgres
@@ -206,7 +206,7 @@
 #       - BOT_TOKEN=${BOT_TOKEN}
 #       - API_URL=http://nginx:80
 #       - API_TOKEN=${API_TOKEN}
-#       - DATABASE_URL=postgres://postgres:${DB_PASSWORD:-postgres}@postgres:5432/bot?sslmode=disable
+#       - DATABASE_URL=postgres://postgres:${DB_PASSWORD:-postgres}@pgbouncer:5432/bot?sslmode=disable
 #       - REDIS_ADDR=redis:6379
 #       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 #       - SCHEDULER_ENABLED=true
