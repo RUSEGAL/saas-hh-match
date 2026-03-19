@@ -20,6 +20,10 @@ type MatchRequest struct {
 	WorkFormats     []string `json:"work_formats"`
 }
 
+type VacancyActionRequest struct {
+	VacancyID int64 `json:"vacancy_id" binding:"required"`
+}
+
 func MatchVacancies(c *gin.Context) {
 	var req MatchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -98,4 +102,48 @@ func GetUserMatches(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"matches": matches})
+}
+
+func SaveVacancyResponse(c *gin.Context) {
+	var req VacancyActionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helpers.Respond(c, http.StatusBadRequest, "invalid_json", err.Error())
+		return
+	}
+
+	userID, err := helpers.GetUserID(c)
+	if err != nil {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id required")
+		return
+	}
+
+	if err := vacancies.SaveResponse(userID, req.VacancyID); err != nil {
+		logger.Error().Err(err).Int64("user_id", userID).Int64("vacancy_id", req.VacancyID).Msg("failed to save response")
+		helpers.Respond(c, http.StatusInternalServerError, "db_error", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func SaveVacancyView(c *gin.Context) {
+	var req VacancyActionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helpers.Respond(c, http.StatusBadRequest, "invalid_json", err.Error())
+		return
+	}
+
+	userID, err := helpers.GetUserID(c)
+	if err != nil {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id required")
+		return
+	}
+
+	if err := vacancies.SaveView(userID, req.VacancyID); err != nil {
+		logger.Error().Err(err).Int64("user_id", userID).Int64("vacancy_id", req.VacancyID).Msg("failed to save view")
+		helpers.Respond(c, http.StatusInternalServerError, "db_error", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

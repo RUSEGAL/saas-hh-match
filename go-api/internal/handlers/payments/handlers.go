@@ -111,5 +111,5 @@ func GetMyPayments(c *gin.Context) {
 	}
 
 	logger.Info().Int64("user_id", userID).Int("count", len(userPayments)).Msg("payments retrieved")
-	c.JSON(http.StatusOK, userPayments)
+	c.JSON(http.StatusOK, gin.H{"payments": userPayments})
 }

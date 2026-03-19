@@ -36,6 +36,11 @@ func SetupRoutes(r *gin.Engine) {
 		ai.POST("/webhook/matches", handlers_ai.WebhookVacancyMatches)
 	}
 
+	internal := r.Group("/internal")
+	{
+		internal.GET("/resumes/:id", resumes_handlers.GetResumeInternal)
+	}
+
 	// TODO: Add ЮKassa webhook when ready
 	// paymentsWebhook := r.Group("/payments")
 	// {
@@ -67,6 +72,8 @@ func SetupRoutes(r *gin.Engine) {
 			vacancies.POST("/match", handlers_vacancies.MatchVacancies)
 			vacancies.GET("/matches/me", handlers_vacancies.GetUserMatches)
 			vacancies.GET("/matches/:id", handlers_vacancies.GetMatchResults)
+			vacancies.POST("/response", handlers_vacancies.SaveVacancyResponse)
+			vacancies.POST("/view", handlers_vacancies.SaveVacancyView)
 		}
 
 		user := api.Group("/user")

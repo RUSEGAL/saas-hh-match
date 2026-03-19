@@ -109,6 +109,7 @@ type MatchPayload struct {
 }
 
 type MatchesWebhookRequest struct {
+	MatchID  int64          `json:"match_id"`
 	UserID   int64          `json:"user_id"`
 	ResumeID int64          `json:"resume_id"`
 	Query    string         `json:"query"`
@@ -123,7 +124,7 @@ func NewMatchesSender(url string) *MatchesSender {
 	}
 }
 
-func (s *MatchesSender) Send(userID, resumeID int64, query string, matches []vacancy.MatchResult) error {
+func (s *MatchesSender) Send(matchID, userID, resumeID int64, query string, matches []vacancy.MatchResult) error {
 	matchesPayload := make([]MatchPayload, 0, len(matches))
 	for _, m := range matches {
 		matchesPayload = append(matchesPayload, MatchPayload{
@@ -137,6 +138,7 @@ func (s *MatchesSender) Send(userID, resumeID int64, query string, matches []vac
 	}
 
 	webhookReq := MatchesWebhookRequest{
+		MatchID:  matchID,
 		UserID:   userID,
 		ResumeID: resumeID,
 		Query:    query,

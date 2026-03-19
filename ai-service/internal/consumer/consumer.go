@@ -35,6 +35,11 @@ type VacancyMatchJob struct {
 	WorkFormats     []string `json:"work_formats"`
 }
 
+type VacancyMatchPayload struct {
+	MatchID int64           `json:"match_id"`
+	Job     VacancyMatchJob `json:"job"`
+}
+
 type Resume struct {
 	ID      int64    `json:"id"`
 	Title   string   `json:"title"`
@@ -50,6 +55,7 @@ type Consumer struct {
 	vacancyWorkers int
 	resumeJobs     chan ResumeAnalysisJob
 	vacancyJobs    chan VacancyMatchJob
+	vacancyMatchID int64
 	resumeResults  chan resumeResult
 	vacancyResults chan vacancyResult
 	wg             sync.WaitGroup
@@ -69,6 +75,7 @@ type resumeResult struct {
 }
 
 type vacancyResult struct {
+	matchID int64
 	job     VacancyMatchJob
 	matches []vacancy.MatchResult
 	err     error
@@ -177,16 +184,19 @@ func (c *Consumer) handleResumeMessage(msg *nats.Msg) {
 }
 
 func (c *Consumer) handleVacancyMessage(msg *nats.Msg) {
-	var job VacancyMatchJob
-	if err := json.Unmarshal(msg.Data, &job); err != nil {
+	var payload VacancyMatchPayload
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		logger.Error().Err(err).Str("data", string(msg.Data)).Msg("Failed to parse vacancy job, acknowledging")
 		msg.Ack()
 		return
 	}
 
+	job := payload.Job
 	if job.Limit == 0 {
 		job.Limit = 20
 	}
+
+	c.vacancyMatchID = payload.MatchID
 
 	select {
 	case c.vacancyJobs <- job:
@@ -234,7 +244,8 @@ func (c *Consumer) vacancyWorker(id int) {
 			logger.Info().Int64("resume_id", job.ResumeID).Str("query", job.Query).Int("worker", id).Msg("Processing vacancy job")
 
 			matches, err := c.processVacancyMatch(job)
-			c.vacancyResults <- vacancyResult{job: job, matches: matches, err: err}
+			matchID := c.vacancyMatchID
+			c.vacancyResults <- vacancyResult{matchID: matchID, job: job, matches: matches, err: err}
 		}
 	}
 }
@@ -326,7 +337,7 @@ func (c *Consumer) vacancyResultHandler() {
 
 			logger.Info().Int64("resume_id", res.job.ResumeID).Int("matches", len(res.matches)).Msg("Vacancy matching complete")
 
-			err := c.matchesSender.Send(res.job.UserID, res.job.ResumeID, res.job.Query, res.matches)
+			err := c.matchesSender.Send(res.matchID, res.job.UserID, res.job.ResumeID, res.job.Query, res.matches)
 			if err != nil {
 				logger.Error().Err(err).Int64("resume_id", res.job.ResumeID).Msg("Matches webhook failed")
 			}

@@ -143,7 +143,7 @@ func (c *APIClient) GetUserPayments(userID int64) ([]Payment, error) {
 		Payments []Payment `json:"payments"`
 	}
 
-	data, err := c.doRequest("GET", fmt.Sprintf("/api/payments/%d", userID), nil)
+	data, err := c.doRequest("GET", "/api/payments/me", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (c *APIClient) UpdateResume(resumeID int64, title, content string) (*Resume
 		Content string `json:"content"`
 	}
 
-	data, err := c.doRequest("PUT", fmt.Sprintf("/api/resumes/%d", resumeID), UpdateReq{
+	data, err := c.doRequest("PATCH", fmt.Sprintf("/api/resumes/%d", resumeID), UpdateReq{
 		Title:   title,
 		Content: content,
 	})

@@ -78,3 +78,21 @@ CREATE INDEX IF NOT EXISTS idx_vacancy_match_results_match_id ON vacancy_match_r
 INSERT INTO users (username, is_admin) 
 VALUES ('admin', TRUE) 
 ON CONFLICT (username) DO NOTHING;
+
+-- Vacancy responses table
+CREATE TABLE IF NOT EXISTS vacancy_responses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    vacancy_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, vacancy_id)
+);
+
+-- Vacancy views table
+CREATE TABLE IF NOT EXISTS vacancy_views (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    vacancy_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, vacancy_id)
+);

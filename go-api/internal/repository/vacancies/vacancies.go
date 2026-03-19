@@ -102,3 +102,19 @@ func GetUserMatches(userID int64) ([]types_internal.VacancyMatch, error) {
 	}
 	return matches, rows.Err()
 }
+
+func SaveVacancyResponse(userID, vacancyID int64) error {
+	_, err := db.DB.Exec(`
+		INSERT INTO vacancy_responses (user_id, vacancy_id) VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, userID, vacancyID)
+	return err
+}
+
+func SaveVacancyView(userID, vacancyID int64) error {
+	_, err := db.DB.Exec(`
+		INSERT INTO vacancy_views (user_id, vacancy_id) VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, userID, vacancyID)
+	return err
+}

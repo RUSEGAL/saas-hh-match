@@ -58,3 +58,26 @@ func GetUserResumes(c *gin.Context) {
 	logger.Info().Int64("user_id", userID).Int("count", len(userResumes)).Msg("resumes retrieved")
 	c.JSON(http.StatusOK, gin.H{"resumes": userResumes})
 }
+
+func GetResumeInternal(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		helpers.Respond(c, http.StatusBadRequest, "invalid_id", "wrong id format")
+		return
+	}
+
+	resume, err := dbresumes.GetResumeByID(id)
+	if err != nil {
+		logger.Error().Err(err).Int64("resume_id", id).Msg("failed to get resume")
+		helpers.Respond(c, http.StatusNotFound, "not_found", "resume not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":      resume.ID,
+		"title":   resume.Title,
+		"content": resume.Content,
+		"tags":    resume.Tags,
+	})
+}

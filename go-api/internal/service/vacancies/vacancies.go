@@ -80,3 +80,11 @@ func ProcessWebhookResult(result *types_internal.VacancyWebhookResult) error {
 
 	return nil
 }
+
+func SaveResponse(userID, vacancyID int64) error {
+	return dbvacancies.SaveVacancyResponse(userID, vacancyID)
+}
+
+func SaveView(userID, vacancyID int64) error {
+	return dbvacancies.SaveVacancyView(userID, vacancyID)
+}
