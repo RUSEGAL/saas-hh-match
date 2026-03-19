@@ -30,7 +30,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("api_webhook_url", "http://localhost:8080/ai/webhook/analyze")
 	viper.SetDefault("api_webhook_matches_url", "http://localhost:8080/ai/webhook/matches")
 	viper.SetDefault("ai_model", "deepseek-chat")
-	viper.SetDefault("ai_base_url", "https://llms.dotpoin.com/v1/")
+	viper.SetDefault("ai_base_url", "https://llms.dotpoin.com")
 	viper.SetDefault("cache_size", 1000)
 	viper.SetDefault("resume_workers", 0)
 	viper.SetDefault("vacancy_workers", 2)
