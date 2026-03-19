@@ -3,6 +3,7 @@ package helpers
 import (
 	"errors"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,16 +30,24 @@ func RandStr(n int) string {
 }
 
 func GetUserID(c *gin.Context) (int64, error) {
-	userIDRaw, exists := c.Get("user_id")
-
-	if !exists {
-		return 0, errors.New("no user")
+	if userIDRaw, exists := c.Get("user_id"); exists {
+		if userID, ok := userIDRaw.(int64); ok {
+			return userID, nil
+		}
 	}
 
-	userID, ok := userIDRaw.(int64)
-	if !ok {
-		return 0, errors.New("invalid type")
+	if userIDStr := c.Query("user_id"); userIDStr != "" {
+		if userID, err := strconv.ParseInt(userIDStr, 10, 64); err == nil {
+			return userID, nil
+		}
 	}
 
-	return userID, nil
+	var body struct {
+		UserID int64 `json:"user_id"`
+	}
+	if err := c.ShouldBindJSON(&body); err == nil && body.UserID > 0 {
+		return body.UserID, nil
+	}
+
+	return 0, errors.New("no user_id found in request")
 }

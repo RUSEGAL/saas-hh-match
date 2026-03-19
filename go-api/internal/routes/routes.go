@@ -43,7 +43,6 @@ func SetupRoutes(r *gin.Engine) {
 	// }
 
 	api := r.Group("/api")
-	api.Use(middleware.Auth())
 	api.Use(apiRateLimiter.Limit())
 	{
 		payments := api.Group("/payments")
