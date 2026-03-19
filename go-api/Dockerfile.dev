@@ -1,6 +1,6 @@
 FROM golang:1.26-alpine
 
-RUN apk add --no-cache git make
+RUN apk add --no-cache git make && mkdir -p /app/tmp
 
 WORKDIR /app
 
