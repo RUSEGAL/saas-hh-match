@@ -14,6 +14,8 @@ type PaymentRequest struct {
 	Provider    string
 }
 type ResumeRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	UserID   int64  `json:"user_id,omitempty"`
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Telegram bool   `json:"telegram,omitempty"`
 }

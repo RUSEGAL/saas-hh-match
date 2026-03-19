@@ -11,16 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AddResume godoc
-// @Summary Create a new resume
-// @Description Create a new resume for the authenticated user
-// @Tags Resumes
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body types_external.ResumeRequest true "Resume data"
-// @Success 201 {object} map[string]interface{}
-// @Router /api/resumes [post]
 func AddResume(c *gin.Context) {
 	var req types_external.ResumeRequest
 
@@ -34,9 +24,9 @@ func AddResume(c *gin.Context) {
 		return
 	}
 
-	userID, err := helpers.GetUserID(c)
-	if err != nil {
-		helpers.Respond(c, http.StatusUnauthorized, "unauthorized", err.Error())
+	userID := req.UserID
+	if userID == 0 {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id is required")
 		return
 	}
 
@@ -51,17 +41,6 @@ func AddResume(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
-// UpdateResume godoc
-// @Summary Update a resume
-// @Description Update an existing resume by ID
-// @Tags Resumes
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path int true "Resume ID"
-// @Param request body types_external.ResumeRequest true "Resume data"
-// @Success 200 {object} map[string]interface{}
-// @Router /api/resumes/{id} [patch]
 func UpdateResume(c *gin.Context) {
 	idStr := c.Param("id")
 
@@ -72,15 +51,14 @@ func UpdateResume(c *gin.Context) {
 	}
 
 	var req types_external.ResumeRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helpers.Respond(c, http.StatusBadRequest, "invalid_json", err.Error())
 		return
 	}
 
-	userID, err := helpers.GetUserID(c)
-	if err != nil {
-		helpers.Respond(c, http.StatusUnauthorized, "unauthorized", err.Error())
+	userID := req.UserID
+	if userID == 0 {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id is required")
 		return
 	}
 
