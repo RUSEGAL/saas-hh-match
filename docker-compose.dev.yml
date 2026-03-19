@@ -62,9 +62,6 @@ services:
       - postgres_dev_data:/var/lib/postgresql/data
       - ./go-api/internal/config/db/init.sql:/docker-entrypoint-initdb.d/1-init.sql:ro
       - ./go-api/internal/config/db/init-bot.sql:/docker-entrypoint-initdb.d/2-init-bot.sql:ro
-    command: >
-      postgres
-      -c 'hba_file=/etc/postgresql/pg_hba.conf'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
