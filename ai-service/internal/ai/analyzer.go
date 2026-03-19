@@ -146,7 +146,11 @@ func (a *Analyzer) Analyze(title, resumeContent string) (*AnalysisResult, error)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	logger.Info().Str("url", a.baseURL+"/chat/completions").Str("model", a.model).Msg("AI request")
+	logger.Info().
+		Str("url", a.baseURL+"/chat/completions").
+		Str("model", a.model).
+		Str("body", string(jsonBody)).
+		Msg("AI request")
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
@@ -171,6 +175,8 @@ func (a *Analyzer) Analyze(title, resumeContent string) (*AnalysisResult, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
+
+	logger.Info().Int("status", resp.StatusCode).Str("response", string(body)).Msg("AI response")
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OpenAI API error: %s", string(body))
