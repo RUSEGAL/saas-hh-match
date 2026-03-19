@@ -3,11 +3,14 @@ package resumes
 import (
 	"go-api/internal/nats"
 	dbresumes "go-api/internal/repository/resumes"
+	dbuser "go-api/internal/repository/user"
 	types_external "go-api/internal/types/external"
 	types_internal "go-api/internal/types/int"
 )
 
 func CreateResume(userID int64, req *types_external.ResumeRequest) (int64, error) {
+	dbuser.EnsureUser(userID, "")
+
 	id, err := dbresumes.AddResumeDb(userID, req.Title, req.Content)
 	if err != nil {
 		return 0, err

@@ -84,3 +84,10 @@ func GetPaymentStatus(userID int64) (*PaymentStatus, error) {
 
 	return status, nil
 }
+
+func EnsureUser(userID int64, username string) {
+	db.DB.Exec(`
+		INSERT INTO users (id, username) VALUES ($1, $2)
+		ON CONFLICT (id) DO NOTHING
+	`, userID, username)
+}
