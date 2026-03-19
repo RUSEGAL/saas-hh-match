@@ -210,11 +210,17 @@ func (c *APIClient) CreateResume(userID int64, title, content string) (*Resume, 
 	if err != nil {
 		return nil, err
 	}
+	type CreateResumeResponse struct {
+		ID int64 `json:"id"`
+	}
 	resp := &CreateResumeResponse{}
 	if err := json.Unmarshal(data, resp); err != nil {
 		return nil, err
 	}
-	return resp.Resume, nil
+	return &Resume{
+		ID:    resp.ID,
+		Title: title,
+	}, nil
 }
 
 func (c *APIClient) GetResumes(userID int64) ([]Resume, error) {
