@@ -11,6 +11,7 @@ RUN go install github.com/air-verse/air@latest
 
 ENV HH_API_URL=https://api.hh.ru
 ENV GOPATH=/go
+ARG MAKEFLAGS="-j1"
 
 COPY . .
 

@@ -16,6 +16,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - app-network
 
@@ -25,6 +29,10 @@ services:
       - "6379:6379"
     volumes:
       - redis_dev_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - app-network
 
@@ -36,6 +44,10 @@ services:
       - "8222:8222"
     volumes:
       - nats_dev_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     networks:
       - app-network
 
@@ -43,6 +55,8 @@ services:
     build:
       context: ./go-api
       dockerfile: Dockerfile.dev
+      args:
+        MAKEFLAGS: "-j1"
     ports:
       - "8080:8080"
       - "6060:6060"
@@ -58,6 +72,11 @@ services:
     volumes:
       - ./go-api:/app
       - go-modules:/go/pkg/mod
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +91,8 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile.dev
+      args:
+        MAKEFLAGS: "-j1"
     environment:
       NATS_URL: nats://nats:4222
       API_WEBHOOK_URL: http://api:8080/ai/webhook/analyze
@@ -80,9 +101,15 @@ services:
       AI_BASE_URL: https://llms.dotpoin.com/v1/
       MAIN_API_URL: http://api:8080
       HH_API_URL: https://api.hh.ru
+      VACANCY_WORKERS: "1"
     volumes:
       - ./ai-service:/app
       - ai-modules:/go/pkg/mod
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     depends_on:
       nats:
         condition: service_started
@@ -95,6 +122,8 @@ services:
     build:
       context: ./tg-bot
       dockerfile: Dockerfile.dev
+      args:
+        MAKEFLAGS: "-j1"
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       API_URL: http://api:8080
@@ -103,6 +132,11 @@ services:
     volumes:
       - ./tg-bot:/app
       - bot-modules:/go/pkg/mod
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
     depends_on:
       postgres:
         condition: service_healthy
