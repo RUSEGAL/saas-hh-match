@@ -1,6 +1,7 @@
 package dbuser
 
 import (
+	"database/sql"
 	"time"
 
 	"go-api/internal/config/db"
@@ -25,6 +26,8 @@ type PaymentStatus struct {
 func GetUserStats(userID int64) (*UserStats, error) {
 	stats := &UserStats{UserID: userID}
 
+	var lastSearch sql.NullTime
+
 	err := db.DB.QueryRow(`
 		SELECT 
 			(SELECT COUNT(*) FROM resumes WHERE user_id = $1) as resumes_count,
@@ -39,10 +42,14 @@ func GetUserStats(userID int64) (*UserStats, error) {
 		&stats.SearchesCount,
 		&stats.MatchesCount,
 		&stats.PaymentsCount,
-		&stats.LastSearchDate,
+		&lastSearch,
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	if lastSearch.Valid {
+		stats.LastSearchDate = lastSearch.Time.Format("2006-01-02")
 	}
 
 	return stats, nil
