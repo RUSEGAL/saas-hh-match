@@ -101,8 +101,8 @@ services:
              echo 'Waiting for NATS...' &&
              until curl -s http://nats:8222/healthz > /dev/null 2>&1; do sleep 1; done &&
              sleep 2 &&
-             curl -s -X PUT http://nats:8222/jsz/streams -H 'Content-Type: application/json' -d '{\"name\":\"RESUME_ANALYZE\",\"subjects\":[\"resume.analyze\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
-             curl -s -X PUT http://nats:8222/jsz/streams -H 'Content-Type: application/json' -d '{\"name\":\"VACANCY_MATCH\",\"subjects\":[\"vacancy.match\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
+             curl -s -X POST http://nats:8222/js/streams -H 'Content-Type: application/json' -d '{\"name\":\"RESUME_ANALYZE\",\"subjects\":[\"resume.analyze\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
+             curl -s -X POST http://nats:8222/js/streams -H 'Content-Type: application/json' -d '{\"name\":\"VACANCY_MATCH\",\"subjects\":[\"vacancy.match\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
              echo 'NATS streams configured'"
     networks:
       - dev-network
