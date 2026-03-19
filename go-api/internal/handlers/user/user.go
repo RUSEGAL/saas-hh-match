@@ -2,6 +2,7 @@ package handlers_user
 
 import (
 	"net/http"
+	"strconv"
 
 	"go-api/internal/helpers"
 	"go-api/internal/logger"
@@ -13,7 +14,15 @@ import (
 func GetMyStats(c *gin.Context) {
 	userID, err := helpers.GetUserID(c)
 	if err != nil {
-		helpers.Respond(c, http.StatusUnauthorized, "unauthorized", err.Error())
+		if userIDStr := c.Query("user_id"); userIDStr != "" {
+			if parsedID, parseErr := strconv.ParseInt(userIDStr, 10, 64); parseErr == nil {
+				userID = parsedID
+				err = nil
+			}
+		}
+	}
+	if err != nil || userID == 0 {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id required")
 		return
 	}
 
@@ -30,7 +39,15 @@ func GetMyStats(c *gin.Context) {
 func GetMyPaymentStatus(c *gin.Context) {
 	userID, err := helpers.GetUserID(c)
 	if err != nil {
-		helpers.Respond(c, http.StatusUnauthorized, "unauthorized", err.Error())
+		if userIDStr := c.Query("user_id"); userIDStr != "" {
+			if parsedID, parseErr := strconv.ParseInt(userIDStr, 10, 64); parseErr == nil {
+				userID = parsedID
+				err = nil
+			}
+		}
+	}
+	if err != nil || userID == 0 {
+		helpers.Respond(c, http.StatusBadRequest, "bad_request", "user_id required")
 		return
 	}
 

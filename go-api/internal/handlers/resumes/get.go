@@ -7,6 +7,7 @@ import (
 	"go-api/internal/helpers"
 	"go-api/internal/logger"
 	dbresumes "go-api/internal/repository/resumes"
+	"go-api/internal/service/resumes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,4 +39,22 @@ func GetResumeByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resume)
+}
+
+func GetUserResumes(c *gin.Context) {
+	userID, err := helpers.GetUserID(c)
+	if err != nil {
+		helpers.Respond(c, http.StatusUnauthorized, "unauthorized", err.Error())
+		return
+	}
+
+	userResumes, err := resumes.GetResumeByUser(userID)
+	if err != nil {
+		logger.Error().Err(err).Int64("user_id", userID).Msg("failed to get resumes")
+		helpers.Respond(c, http.StatusInternalServerError, "db_error", err.Error())
+		return
+	}
+
+	logger.Info().Int64("user_id", userID).Int("count", len(userResumes)).Msg("resumes retrieved")
+	c.JSON(http.StatusOK, gin.H{"resumes": userResumes})
 }

@@ -57,6 +57,7 @@ func SetupRoutes(r *gin.Engine) {
 			resumes.POST("/", resumes_handlers.AddResume)
 			resumes.PATCH("/:id", resumes_handlers.UpdateResume)
 			resumes.DELETE("/:id", resumes_handlers.DeleteResume)
+			resumes.GET("/", resumes_handlers.GetUserResumes)
 			resumes.GET("/me", resumes_handlers.GetMyResumes)
 			resumes.GET("/:id", resumes_handlers.GetResumeByID)
 		}
