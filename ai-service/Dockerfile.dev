@@ -1,16 +1,17 @@
 FROM golang:1.26-alpine
 
-RUN apk add --no-cache git && mkdir -p /app/tmp
+RUN apk add --no-cache git && mkdir -p /app/tmp /app/src
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
-
 RUN go install github.com/air-verse/air@latest
 
 ENV HH_API_URL=https://api.hh.ru
+ENV GOPATH=/go
 
-CMD ["air"]
+COPY . .
+
+CMD ["air", "-c", "air.toml"]
