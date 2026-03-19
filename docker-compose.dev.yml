@@ -81,10 +81,12 @@ services:
 
   nats:
     image: nats:2.10-alpine
-    command: ["-js"]
+    command: ["-js", "-c", "/etc/nats/nats-server.conf"]
     ports:
       - "4222:4222"
       - "8222:8222"
+    volumes:
+      - ./go-api/nats-server.conf:/etc/nats/nats-server.conf:ro
     networks:
       - dev-network
 
