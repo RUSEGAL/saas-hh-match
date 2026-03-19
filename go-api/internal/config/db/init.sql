@@ -74,9 +74,9 @@ CREATE TABLE IF NOT EXISTS vacancy_match_results (
 CREATE INDEX IF NOT EXISTS idx_vacancy_match_results_match_id ON vacancy_match_results(match_id);
 
 -- Admin user (password: admin123 - CHANGE THIS!)
-INSERT INTO users (username, is_admin) 
-VALUES ('admin', TRUE) 
-ON CONFLICT (username) DO NOTHING;
+INSERT INTO users (id, username, is_admin) 
+VALUES (1, 'admin', TRUE) 
+ON CONFLICT (id) DO NOTHING;
 
 -- Vacancy responses table
 CREATE TABLE IF NOT EXISTS vacancy_responses (
