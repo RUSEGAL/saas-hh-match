@@ -44,9 +44,9 @@ services:
     volumes:
       - ./ai-service:/app
       - ai-modules:/go/pkg/mod
-    # depends_on:
-    #   nats:
-    #     condition: service_healthy
+    depends_on:
+      nats-init:
+        condition: service_completed_successfully
     networks:
       - dev-network
 
