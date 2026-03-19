@@ -161,7 +161,7 @@ func (c *APIClient) GetPaymentStatus(userID int64) (*Payment, error) {
 		DaysRemaining int    `json:"days_remaining"`
 	}
 
-	data, err := c.doRequest("GET", "/api/user/payment-status", nil)
+	data, err := c.doRequest("GET", fmt.Sprintf("/api/user/payment-status?user_id=%d", userID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ func (c *APIClient) GetUserStats(userID int64) (*UserStats, error) {
 		LastSearchDate string `json:"last_search_date,omitempty"`
 	}
 
-	data, err := c.doRequest("GET", "/api/user/stats", nil)
+	data, err := c.doRequest("GET", fmt.Sprintf("/api/user/stats?user_id=%d", userID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -377,10 +377,12 @@ func (c *APIClient) GetUserStats(userID int64) (*UserStats, error) {
 
 func (c *APIClient) GetPaymentLink(userID int64, duration int) (string, error) {
 	type PaymentReq struct {
-		Duration int `json:"duration"`
+		UserID   int64 `json:"user_id"`
+		Duration int   `json:"duration"`
 	}
 
 	data, err := c.doRequest("POST", "/api/payments", PaymentReq{
+		UserID:   userID,
 		Duration: duration,
 	})
 	if err != nil {
