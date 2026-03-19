@@ -100,8 +100,10 @@ func NewAnalyzer(apiKey, model, baseURL, promptPath string, cacheSize int) (*Ana
 	}
 
 	if baseURL == "" {
-		baseURL = "https://api.deepseek.com"
+		baseURL = "https://llms.dotpoin.com/v1"
 	}
+
+	baseURL = strings.TrimSuffix(baseURL, "/")
 
 	if cacheSize <= 0 {
 		cacheSize = 1000
@@ -139,12 +141,12 @@ func (a *Analyzer) Analyze(title, resumeContent string) (*AnalysisResult, error)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", a.baseURL+"/v1/chat/completions", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", a.baseURL+"/chat/completions", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	logger.Info().Str("url", a.baseURL+"/v1/chat/completions").Str("model", a.model).Msg("AI request")
+	logger.Info().Str("url", a.baseURL+"/chat/completions").Str("model", a.model).Msg("AI request")
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)

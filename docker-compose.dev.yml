@@ -77,6 +77,7 @@ services:
       API_WEBHOOK_URL: http://api:8080/ai/webhook/analyze
       API_WEBHOOK_MATCHES_URL: http://api:8080/ai/webhook/matches
       AI_API_KEY: ${AI_API_KEY}
+      AI_BASE_URL: https://llms.dotpoin.com/v1/
       MAIN_API_URL: http://api:8080
       HH_API_URL: https://api.hh.ru
     volumes:
