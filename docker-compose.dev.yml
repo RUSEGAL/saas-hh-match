@@ -1,61 +1,10 @@
-version: "3.8"
-
 services:
-  api:
-    build:
-      context: ./go-api
-      dockerfile: Dockerfile.dev
-    ports:
-      - "8080:8080"
-      - "6060:6060"
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=goapi
-      - REDIS_ADDR=redis:6379
-      - NATS_URL=nats://nats:4222
-      - JWT_SECRET=dev-secret-change-in-prod
-    volumes:
-      - ./go-api:/app
-      - go-modules:/go/pkg/mod
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      nats:
-        condition: service_started
-    networks:
-      - dev-network
-
-  ai-service:
-    build:
-      context: ./ai-service
-      dockerfile: Dockerfile.dev
-    environment:
-      - NATS_URL=nats://nats:4222
-      - API_WEBHOOK_URL=http://api:8080/ai/webhook/analyze
-      - API_WEBHOOK_MATCHES_URL=http://api:8080/ai/webhook/matches
-      - AI_API_KEY=${AI_API_KEY}
-      - MAIN_API_URL=http://api:8080
-      - HH_API_URL=https://api.hh.ru
-    volumes:
-      - ./ai-service:/app
-      - ai-modules:/go/pkg/mod
-    depends_on:
-      nats-init:
-        condition: service_completed_successfully
-    networks:
-      - dev-network
-
   postgres:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=goapi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: goapi
     ports:
       - "5432:5432"
     volumes:
@@ -68,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - dev-network
+      - app-network
 
   redis:
     image: redis:7-alpine
@@ -77,51 +26,79 @@ services:
     volumes:
       - redis_dev_data:/data
     networks:
-      - dev-network
+      - app-network
 
   nats:
     image: nats:2.10-alpine
-    command: ["-c", "/etc/nats/nats-server.conf"]
+    command: ["-js"]
     ports:
       - "4222:4222"
       - "8222:8222"
     volumes:
-      - ./go-api/nats-server.conf:/etc/nats/nats-server.conf:ro
       - nats_dev_data:/data
     networks:
-      - dev-network
+      - app-network
 
-  nats-init:
-    image: alpine:3.19
+  api:
+    build:
+      context: ./go-api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+      - "6060:6060"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: goapi
+      REDIS_ADDR: redis:6379
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-secret-change-in-prod
+    volumes:
+      - ./go-api:/app
+      - go-modules:/go/pkg/mod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+    networks:
+      - app-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile.dev
+    environment:
+      NATS_URL: nats://nats:4222
+      API_WEBHOOK_URL: http://api:8080/ai/webhook/analyze
+      API_WEBHOOK_MATCHES_URL: http://api:8080/ai/webhook/matches
+      AI_API_KEY: ${AI_API_KEY}
+      MAIN_API_URL: http://api:8080
+      HH_API_URL: https://api.hh.ru
+    volumes:
+      - ./ai-service:/app
+      - ai-modules:/go/pkg/mod
     depends_on:
       nats:
         condition: service_started
-    command: >
-      sh -c "apk add --no-cache curl > /dev/null 2>&1 &&
-             echo 'Waiting for NATS...' &&
-             until curl -s http://nats:8222/varz > /dev/null 2>&1; do sleep 1; done &&
-             sleep 3 &&
-             echo 'Creating RESUME_ANALYZE stream...' &&
-             curl -s -w '\nHTTP_CODE:%{http_code}' -X POST http://nats:8222/js/streams -H 'Content-Type: application/json' -d '{\"name\":\"RESUME_ANALYZE\",\"subjects\":[\"resume.analyze\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
-             echo '' &&
-             echo 'Creating VACANCY_MATCH stream...' &&
-             curl -s -w '\nHTTP_CODE:%{http_code}' -X POST http://nats:8222/js/streams -H 'Content-Type: application/json' -d '{\"name\":\"VACANCY_MATCH\",\"subjects\":[\"vacancy.match\"],\"retention\":\"workqueue\",\"storage\":\"file\"}' &&
-             echo '' &&
-             echo 'Verifying streams...' &&
-             curl -s http://nats:8222/js/streams -H 'Content-Type: application/json' &&
-             echo 'NATS streams configured'"
+      api:
+        condition: service_started
     networks:
-      - dev-network
+      - app-network
 
   tg-bot:
     build:
       context: ./tg-bot
       dockerfile: Dockerfile.dev
     environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - API_URL=http://api:8080
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/bot?sslmode=disable
-      - REDIS_ADDR=redis:6379
+      BOT_TOKEN: ${BOT_TOKEN}
+      API_URL: http://api:8080
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/bot?sslmode=disable
+      REDIS_ADDR: redis:6379
     volumes:
       - ./tg-bot:/app
       - bot-modules:/go/pkg/mod
@@ -131,7 +108,7 @@ services:
       redis:
         condition: service_started
     networks:
-      - dev-network
+      - app-network
 
 volumes:
   postgres_dev_data:
@@ -142,5 +119,5 @@ volumes:
   bot-modules:
 
 networks:
-  dev-network:
+  app-network:
     driver: bridge

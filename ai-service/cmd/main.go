@@ -10,6 +10,7 @@ import (
 	"ai-service/internal/config"
 	"ai-service/internal/consumer"
 	"ai-service/internal/logger"
+	"ai-service/internal/natsutil"
 	"ai-service/internal/vacancy"
 	"ai-service/internal/webhook"
 )
@@ -37,6 +38,11 @@ func main() {
 	defer nc.Close()
 
 	logger.Info().Str("url", cfg.NATSURL).Msg("connected to NATS")
+
+	if err := natsutil.EnsureStreams(nc); err != nil {
+		logger.Error().Err(err).Msg("failed to ensure NATS streams exist")
+		os.Exit(1)
+	}
 
 	analyzer, err := ai.NewAnalyzer(cfg.AIAPIKey, cfg.AIModel, cfg.AIBaseURL, "prompts/resume_analyze.txt", cfg.CacheSize)
 	if err != nil {
